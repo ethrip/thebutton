@@ -16,7 +16,7 @@ exports.handler = async function(event) {
   }
 
   const CLIENT_ID     = 'ZVRBOEpHUklIZEUxdzlreHBvbTA6MTpjaQ';
-  const CLIENT_SECRET = 'MX84uijpufFMaJi6Ap6jNJPLhGnjiBIFH19nikLFXcRddVA3Kw';
+  const CLIENT_SECRET = 'qwUqmn0JXP7jyEYNWBQ554ozix7xM9c1-0ArPdWGmIhZRBpobP';
   const REDIRECT_URI  = 'https://www.thebuttonnft.click/';
 
   let body;
