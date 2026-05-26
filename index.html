@@ -552,7 +552,7 @@ input::placeholder{color:rgba(0,232,87,.2)}
 const SUPABASE_URL  = 'https://mxxgnavmnamfkcmuhred.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_kfiTDtq_YPkLtj9--NDfOQ_Y343NqWY';
 const X_CLIENT_ID   = 'ZVRBOEpHUklIZEUxdzlreHBvbTA6MTpjaQ';
-const X_REDIRECT    = 'https://www.thebuttonnft.click/callback';
+const X_REDIRECT    = 'https://www.thebuttonnft.click/';
 const X_SCOPE       = 'tweet.read users.read offline.access';
 
 // ============================================================
@@ -597,10 +597,12 @@ async function boot() {
   const urlRef = new URLSearchParams(window.location.search).get('ref');
   if (urlRef) document.getElementById('refInput').value = urlRef;
 
-  // Handle OAuth callback
-  const hash = window.location.hash;
+  // Handle OAuth callback — check for ?code= in URL
   const params = new URLSearchParams(window.location.search);
-  if (params.get('code') || hash.includes('access_token')) {
+  const urlCode = params.get('code');
+  console.log('Boot: URL params:', window.location.search);
+  console.log('Boot: code found:', urlCode);
+  if (urlCode) {
     await handleOAuthCallback();
     return;
   }
@@ -696,11 +698,19 @@ async function handleOAuthCallback() {
   const verifier = sessionStorage.getItem('pkce_verifier');
   const origState= sessionStorage.getItem('oauth_state');
 
+  console.log('handleOAuthCallback: code=', code);
+  console.log('handleOAuthCallback: state=', retState, 'expected=', origState);
+  console.log('handleOAuthCallback: verifier=', verifier ? 'present' : 'MISSING');
+
   // Clean URL
   window.history.replaceState({}, document.title, '/');
 
-  if (!code || !verifier) {
-    flash('X AUTH FAILED — MISSING CODE', 'e');
+  if (!code) {
+    flash('X AUTH FAILED — NO CODE IN URL. CHECK CALLBACK URI IN TWITTER APP', 'e');
+    return;
+  }
+  if (!verifier) {
+    flash('X AUTH FAILED — SESSION EXPIRED. PLEASE TRY AGAIN', 'e');
     return;
   }
   if (retState !== origState) {
