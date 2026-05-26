@@ -285,6 +285,20 @@ input::placeholder{color:rgba(0,232,87,.2)}
 .sc-stat-v{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;color:var(--pg5);text-shadow:var(--glow);display:block;line-height:1}
 .sc-stat-l{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(0,232,87,.35);margin-top:5px;display:block}
 @media(max-width:520px){.sc-card-inner{grid-template-columns:1fr}.sc-card-right{width:100%;border-left:none;border-top:1px solid rgba(0,232,87,.1);flex-direction:row;justify-content:center}.sc-actions{grid-template-columns:1fr}}
+
+/* ===== LEADERBOARD REF BOX ===== */
+.lb-ref-box{background:rgba(0,232,87,.04);border:1px solid rgba(0,232,87,.2);padding:16px 20px;margin-bottom:20px;display:none}
+.lb-ref-box.show{display:block}
+.lb-ref-box-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.lb-ref-box-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:rgba(0,232,87,.4)}
+.lb-ref-box-url{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--pg5);letter-spacing:.5px;word-break:break-all;margin-bottom:12px}
+.lb-copy-btn{display:flex;align-items:center;gap:8px;padding:9px 18px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--pg5);border:1px solid rgba(0,232,87,.35);background:transparent;cursor:pointer;transition:all .2s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);white-space:nowrap}
+.lb-copy-btn:hover{background:rgba(0,232,87,.1);box-shadow:var(--glow)}
+.lb-copy-btn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0}
+.lb-copy-confirm{font-size:10px;color:var(--pg5);opacity:0;transition:opacity .3s;margin-left:4px}
+.lb-copy-confirm.show{opacity:1}
+.lb-not-signed{font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(0,232,87,.35);letter-spacing:1px;text-align:center;padding:14px;border:1px solid rgba(0,232,87,.1);margin-bottom:20px;display:none}
+.lb-not-signed.show{display:block}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -444,14 +458,13 @@ input::placeholder{color:rgba(0,232,87,.2)}
               <div class="sc-logo-txt">THE BUTTON</div>
             </div>
             <div class="sc-user-row">
-              <img class="sc-avatar" id="scAvatar" src="" alt="" onerror="this.style.display='none';document.getElementById('scAvatarFallback').style.display='flex'">
-              <div class="sc-avatar-placeholder" id="scAvatarFallback" style="display:none" id="scAvatarFallback">?</div>
+              <img class="sc-avatar" id="scAvatar" src="" alt="" style="display:none">
               <div class="sc-user-info">
                 <div class="sc-display-name" id="scDisplayName">Display Name</div>
                 <div class="sc-handle" id="scHandle">@handle</div>
               </div>
             </div>
-            <div class="sc-headline">WHITELIST<br>SECURED ✓</div>
+            <div class="sc-headline">WAITLIST<br>SECURED ✓</div>
             <div class="sc-subline">PRESS AT YOUR OWN RISK</div>
             <div class="sc-ref-block">
               <div class="sc-ref-label">REFERRAL CODE</div>
@@ -523,6 +536,24 @@ input::placeholder{color:rgba(0,232,87,.2)}
       <div class="gtd-text"><strong>TOP 50 REFERRERS</strong> RECEIVE A GUARANTEED WHITELIST SPOT REGARDLESS OF MINT DEMAND. SHARE YOUR UNIQUE LINK TO CLIMB THE BOARD.</div>
     </div>
 
+    <!-- Your referral link box — shown if signed in -->
+    <div class="lb-ref-box" id="lbRefBox">
+      <div class="lb-ref-box-top">
+        <div class="lb-ref-box-label">YOUR REFERRAL LINK</div>
+        <button class="lb-copy-btn" onclick="copyLbRefLink()">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          COPY LINK
+          <span class="lb-copy-confirm" id="lbCopyConfirm">COPIED!</span>
+        </button>
+      </div>
+      <div class="lb-ref-box-url" id="lbRefUrl">https://www.thebuttonnft.click/?ref=—</div>
+    </div>
+
+    <!-- Not signed in hint -->
+    <div class="lb-not-signed" id="lbNotSigned">
+      SIGN UP ON THE WAITLIST TAB TO GET YOUR REFERRAL LINK
+    </div>
+
     <table class="lb-table">
       <thead>
         <tr>
@@ -552,7 +583,7 @@ input::placeholder{color:rgba(0,232,87,.2)}
 const SUPABASE_URL  = 'https://mxxgnavmnamfkcmuhred.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_kfiTDtq_YPkLtj9--NDfOQ_Y343NqWY';
 const X_CLIENT_ID   = 'ZVRBOEpHUklIZEUxdzlreHBvbTA6MTpjaQ';
-const X_REDIRECT    = 'https://www.thebuttonnft.click/';
+const X_REDIRECT    = 'https://www.thebuttonnft.click/callback';
 const X_SCOPE       = 'tweet.read users.read offline.access';
 
 // ============================================================
@@ -600,7 +631,8 @@ async function boot() {
   // Handle OAuth callback — check for ?code= in URL
   const params = new URLSearchParams(window.location.search);
   const urlCode = params.get('code');
-  console.log('Boot: URL params:', window.location.search);
+  console.log('Boot: URL href:', window.location.href);
+  console.log('Boot: URL search:', window.location.search);
   console.log('Boot: code found:', urlCode);
   if (urlCode) {
     await handleOAuthCallback();
@@ -1018,15 +1050,13 @@ async function handleSubmit() {
     document.getElementById('sRank').textContent         = totalCount;
     document.getElementById('wlCount').textContent       = totalCount.toLocaleString();
 
-    // X avatar
+    // X avatar — only show if we have a real URL
     const scAv = document.getElementById('scAvatar');
     if (state.xAvatar) {
       scAv.src = state.xAvatar;
       scAv.style.display = 'block';
     } else {
       scAv.style.display = 'none';
-      const fb = document.getElementById('scAvatarFallback');
-      if (fb) { fb.style.display = 'flex'; fb.textContent = state.xHandle.replace('@','').slice(0,2).toUpperCase(); }
     }
 
     // NFT image (already embedded in HTML — just make sure it's set)
@@ -1056,7 +1086,7 @@ async function handleSubmit() {
 //  SHARE
 // ============================================================
 function buildTweetText(handle, refUrl) {
-  return `\u23f1\ufe0f The clock is ticking.\n\nI just secured my spot on THE BUTTON NFT waitlist \u2014 only holders get to press. One presser wins everything.\n\nGonna miss out? \U0001f447\n${refUrl}\n\n@thebuttonnft #TheButton #NFT #Web3`;
+  return "⏱️ The clock is ticking.\n\nI just secured my spot on THE BUTTON NFT waitlist —\nGonna miss out?\n" + refUrl + "\n\n@thebuttonnft";
 }
 
 function shareOnX() {
@@ -1069,6 +1099,16 @@ function copyRefLink() {
   const url = document.getElementById('refUrl').textContent;
   navigator.clipboard.writeText(url).then(() => {
     const c = document.getElementById('copyConfirm');
+    c.classList.add('show');
+    setTimeout(() => c.classList.remove('show'), 2000);
+    flash('REFERRAL LINK COPIED', 'g');
+  });
+}
+
+function copyLbRefLink() {
+  const url = document.getElementById('lbRefUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const c = document.getElementById('lbCopyConfirm');
     c.classList.add('show');
     setTimeout(() => c.classList.remove('show'), 2000);
     flash('REFERRAL LINK COPIED', 'g');
@@ -1105,6 +1145,23 @@ async function saveCard() {
 async function renderLeaderboard() {
   const tbody = document.getElementById('lbBody');
   tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(0,232,87,.3);letter-spacing:2px">LOADING...</td></tr>`;
+
+  // Show referral link box if user is signed in
+  const lbRefBox   = document.getElementById('lbRefBox');
+  const lbRefUrl   = document.getElementById('lbRefUrl');
+  const lbNotSigned = document.getElementById('lbNotSigned');
+  if (state.submitted && state.refCode) {
+    lbRefUrl.textContent = `https://www.thebuttonnft.click/?ref=${state.refCode}`;
+    lbRefBox.classList.add('show');
+    lbNotSigned.classList.remove('show');
+  } else if (state.xAuthed && state.refCode) {
+    lbRefUrl.textContent = `https://www.thebuttonnft.click/?ref=${state.refCode}`;
+    lbRefBox.classList.add('show');
+    lbNotSigned.classList.remove('show');
+  } else {
+    lbRefBox.classList.remove('show');
+    lbNotSigned.classList.add('show');
+  }
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/leaderboard_view?select=*&order=ref_count.desc&limit=100`,
