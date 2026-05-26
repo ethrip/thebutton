@@ -1015,7 +1015,8 @@ async function handleSubmit() {
         wallet_type:    state.walletConnected ? state.walletType    : null,
         ref_code:       refCode,
         referred_by:    refBy || null,
-        followed_x:     true
+        followed_x:     true,
+        avatar_url:     state.xAvatar || null
       })
     });
 
@@ -1193,8 +1194,9 @@ async function renderLeaderboard() {
     lbNotSigned.classList.add('show');
   }
   try {
+    // Fetch leaderboard with avatar — join waitlist for avatar_url
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/leaderboard_view?select=*&order=ref_count.desc&limit=100`,
+      `${SUPABASE_URL}/rest/v1/waitlist?select=x_handle,ref_code,avatar_url&order=created_at.asc&limit=100`,
       { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
     );
     const rows = res.ok ? await res.json() : [];
@@ -1209,9 +1211,13 @@ async function renderLeaderboard() {
       const isGtd = rank <= 50;
       const initials = (row.x_handle||'??').replace('@','').slice(0,2).toUpperCase();
       const rankClass = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':rank===50?'rank-50':'';
+      const avatarHtml = row.avatar_url
+        ? `<img src="${row.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(0,232,87,.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          + `<div class="avatar-mini" style="display:none">${initials}</div>`
+        : `<div class="avatar-mini">${initials}</div>`;
       html += `<tr class="${(isYou?'you-row ':'')+rankClass}">
         <td class="rank-num">${rank<=3?['🥇','🥈','🥉'][rank-1]:'#'+rank}</td>
-        <td><div class="handle-cell"><div class="avatar-mini">${initials}</div>${row.x_handle||'—'}${isYou?'<span class="you-badge">YOU</span>':''}</div></td>
+        <td><div class="handle-cell">${avatarHtml}${row.x_handle||'—'}${isYou?'<span class="you-badge">YOU</span>':''}</div></td>
         <td class="refs-count">${row.ref_count||0}</td>
         <td>${isGtd?'<span class="gtd-badge gold">GTD WL</span>':'<span class="gtd-badge">PENDING</span>'}</td>
       </tr>`;
