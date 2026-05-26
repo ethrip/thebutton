@@ -1146,18 +1146,48 @@ async function renderLeaderboard() {
   const tbody = document.getElementById('lbBody');
   tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(0,232,87,.3);letter-spacing:2px">LOADING...</td></tr>`;
 
-  // Show referral link box if user is signed in
-  const lbRefBox   = document.getElementById('lbRefBox');
-  const lbRefUrl   = document.getElementById('lbRefUrl');
+  // Show referral link box — check state, sessionStorage, and Supabase
+  const lbRefBox    = document.getElementById('lbRefBox');
+  const lbRefUrl    = document.getElementById('lbRefUrl');
   const lbNotSigned = document.getElementById('lbNotSigned');
-  if (state.submitted && state.refCode) {
-    lbRefUrl.textContent = `https://www.thebuttonnft.click/?ref=${state.refCode}`;
+
+  // Try to get ref code from state first, then sessionStorage
+  let refCode = state.refCode;
+  let handle  = state.xHandle;
+
+  if (!refCode) {
+    const savedX = sessionStorage.getItem('x_auth');
+    if (savedX) {
+      try { handle = JSON.parse(savedX).handle; } catch(e) {}
+    }
+  }
+
+  if (refCode) {
+    // Already have it in memory
+    lbRefUrl.textContent = `https://www.thebuttonnft.click/?ref=${refCode}`;
     lbRefBox.classList.add('show');
     lbNotSigned.classList.remove('show');
-  } else if (state.xAuthed && state.refCode) {
-    lbRefUrl.textContent = `https://www.thebuttonnft.click/?ref=${state.refCode}`;
-    lbRefBox.classList.add('show');
-    lbNotSigned.classList.remove('show');
+  } else if (handle) {
+    // Fetch from Supabase by x_handle
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/waitlist?x_handle=eq.${encodeURIComponent(handle)}&select=ref_code`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+      );
+      const rows = await res.json();
+      if (rows && rows.length > 0 && rows[0].ref_code) {
+        state.refCode = rows[0].ref_code;
+        lbRefUrl.textContent = `https://www.thebuttonnft.click/?ref=${rows[0].ref_code}`;
+        lbRefBox.classList.add('show');
+        lbNotSigned.classList.remove('show');
+      } else {
+        lbRefBox.classList.remove('show');
+        lbNotSigned.classList.add('show');
+      }
+    } catch(e) {
+      lbRefBox.classList.remove('show');
+      lbNotSigned.classList.add('show');
+    }
   } else {
     lbRefBox.classList.remove('show');
     lbNotSigned.classList.add('show');
