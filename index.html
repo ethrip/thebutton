@@ -1194,9 +1194,9 @@ async function renderLeaderboard() {
     lbNotSigned.classList.add('show');
   }
   try {
-    // Fetch leaderboard with avatar — join waitlist for avatar_url
+    // Fetch leaderboard from view (includes ref_count) + avatar from waitlist
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/waitlist?select=x_handle,ref_code,avatar_url&order=created_at.asc&limit=100`,
+      `${SUPABASE_URL}/rest/v1/leaderboard_view?select=x_handle,ref_code,avatar_url,ref_count&order=ref_count.desc&limit=100`,
       { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
     );
     const rows = res.ok ? await res.json() : [];
